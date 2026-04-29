@@ -116,7 +116,7 @@
     <section class="code-pane code-pane--input">
       <header class="code-pane-header">
         <span class="step-badge">1</span>
-        <span class="code-pane-title">Paste AI-copied text here</span>
+        <span class="code-pane-title" id="input-title">Paste AI-copied text here</span>
         <span class="code-pane-hint">Ctrl / ⌘ + V</span>
       </header>
       <div class="code-area">
@@ -128,6 +128,7 @@
           spellcheck="false"
           autocomplete="off"
           autocapitalize="off"
+          aria-labelledby="input-title"
           placeholder="Paste here…"></textarea>
       </div>
     </section>
@@ -137,7 +138,7 @@
     <section class="code-pane code-pane--output">
       <header class="code-pane-header">
         <span class="step-badge">2</span>
-        <span class="code-pane-title">Cleaned output</span>
+        <span class="code-pane-title" id="output-title">Cleaned output</span>
         <button id="copy" class="copy-btn" type="button">Copy</button>
       </header>
       <div class="code-area">
@@ -149,6 +150,7 @@
           spellcheck="false"
           autocomplete="off"
           readonly
+          aria-labelledby="output-title"
           placeholder="Cleaned result will appear here."></textarea>
       </div>
     </section>
