@@ -13,6 +13,8 @@
       --pane-bg: #fafafa;
       --accent: #2563eb;
       --accent-fg: #ffffff;
+      --success: #16a34a;
+      --failure: #c0392b;
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -23,6 +25,8 @@
         --pane-bg: #15181d;
         --accent: #3b82f6;
         --accent-fg: #ffffff;
+        --success: #22c55e;
+        --failure: #ef4444;
       }
     }
 
@@ -60,7 +64,7 @@
       min-height: 0;
     }
     @media (max-width: 768px) {
-      main { grid-template-columns: 1fr; }
+      main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
     }
 
     .pane {
@@ -101,6 +105,11 @@
     .pane textarea::placeholder {
       color: var(--muted);
     }
+    .pane textarea:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+      border-radius: 6px;
+    }
 
     button#copy {
       background: var(--accent);
@@ -113,7 +122,8 @@
       margin: 0.25rem 0;
     }
     button#copy:active { transform: translateY(1px); }
-    button#copy.copied { background: #16a34a; }
+    button#copy.copied { background: var(--success); }
+    button#copy.failed { background: var(--failure); }
 
     footer {
       padding: 0.5rem 1.25rem 0.75rem;
@@ -187,22 +197,33 @@
         return parts.join(' + ') + ' leading';
       }
 
+      let copyResetTimer = null;
+
       async function copyOutput() {
+        if (copyBtn.classList.contains('copied') || copyBtn.classList.contains('failed')) {
+          return; // re-entry guard while a status flash is on screen
+        }
+
+        let ok = false;
         try {
           await navigator.clipboard.writeText(outputEl.value);
+          ok = true;
         } catch (err) {
-          // Fallback: select and execCommand for older browsers.
+          // Fallback: select and execCommand for older browsers / non-secure contexts.
           outputEl.removeAttribute('readonly');
           outputEl.select();
-          document.execCommand('copy');
+          try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
           outputEl.setAttribute('readonly', '');
         }
-        const original = copyBtn.textContent;
-        copyBtn.textContent = 'Copied!';
-        copyBtn.classList.add('copied');
-        setTimeout(function () {
-          copyBtn.textContent = original;
-          copyBtn.classList.remove('copied');
+
+        copyBtn.textContent = ok ? 'Copied!' : 'Copy failed';
+        copyBtn.classList.add(ok ? 'copied' : 'failed');
+
+        if (copyResetTimer) clearTimeout(copyResetTimer);
+        copyResetTimer = setTimeout(function () {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied', 'failed');
+          copyResetTimer = null;
         }, 1500);
       }
 
