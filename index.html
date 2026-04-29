@@ -3,238 +3,84 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>claude-made-me-do-it</title>
+  <title>Claude Made Me Do It</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <style>
-    :root {
-      --bg: #ffffff;
-      --fg: #1a1a1a;
-      --muted: #666;
-      --border: #d0d0d0;
-      --pane-bg: #fafafa;
-      --accent: #2563eb;
-      --accent-fg: #ffffff;
-      --success: #16a34a;
-      --failure: #c0392b;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0f1115;
-        --fg: #e6e6e6;
-        --muted: #888;
-        --border: #2a2d33;
-        --pane-bg: #15181d;
-        --accent: #3b82f6;
-        --accent-fg: #ffffff;
-        --success: #22c55e;
-        --failure: #ef4444;
-      }
-    }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
-    body {
-      background: var(--bg);
-      color: var(--fg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-    }
-
-    header {
-      padding: 1rem 1.25rem 0.5rem;
-    }
-    h1 {
-      margin: 0;
-      font-size: 1.05rem;
-      font-weight: 600;
-      letter-spacing: 0.01em;
-    }
-    .tagline {
-      margin: 0.25rem 0 0;
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-
-    main {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-      padding: 0.75rem 1.25rem 0.5rem;
-      min-height: 0;
-    }
-    @media (max-width: 768px) {
-      main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
-    }
-
-    .pane {
-      display: flex;
-      flex-direction: column;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--pane-bg);
-      min-height: 0;
-    }
-    .pane label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      padding: 0.5rem 0.75rem;
-    }
-    .pane-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-right: 0.5rem;
-    }
-    .pane textarea {
-      flex: 1;
-      width: 100%;
-      border: 0;
-      outline: 0;
-      resize: none;
-      background: transparent;
-      color: var(--fg);
-      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-      font-size: 13px;
-      line-height: 1.5;
-      padding: 0 0.75rem 0.75rem;
-      tab-size: 4;
-    }
-    .pane textarea::placeholder {
-      color: var(--muted);
-    }
-    .pane textarea:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: -2px;
-      border-radius: 6px;
-    }
-
-    button#copy {
-      background: var(--accent);
-      color: var(--accent-fg);
-      border: 0;
-      padding: 0.35rem 0.75rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      margin: 0.25rem 0;
-    }
-    button#copy:active { transform: translateY(1px); }
-    button#copy.copied { background: var(--success); }
-    button#copy.failed { background: var(--failure); }
-
-    footer {
-      padding: 0.5rem 1.25rem 0.75rem;
-      color: var(--muted);
-      font-size: 0.75rem;
-      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    }
+    /* CSS will be added in Task 2 */
   </style>
 </head>
 <body>
-  <header>
-    <h1>claude-made-me-do-it</h1>
-    <p class="tagline">Paste from Claude Code or any AI tool. Get clean, copy-ready text.</p>
+  <header class="page-header">
+    <!-- speech bubble + title + theme toggle (Task 3) -->
   </header>
 
-  <main>
-    <section class="pane pane-input">
-      <label for="input">Input</label>
-      <textarea
-        id="input"
-        spellcheck="false"
-        autocomplete="off"
-        placeholder="Paste here…"></textarea>
+  <section class="feature-badges">
+    <!-- 3 feature badges (Task 4) -->
+  </section>
+
+  <main class="panels">
+    <!-- input + output code panels (Tasks 5-7) -->
+    <section class="code-pane code-pane--input">
+      <header class="code-pane-header">
+        <span class="step-badge">1</span>
+        <span class="code-pane-title">Paste AI-copied text here</span>
+        <span class="code-pane-hint">Ctrl / ⌘ + V</span>
+      </header>
+      <div class="code-area">
+        <div class="line-numbers" id="input-gutter" aria-hidden="true">1</div>
+        <pre class="ws-overlay" id="input-overlay" aria-hidden="true"></pre>
+        <textarea
+          id="input"
+          class="code-input"
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"
+          placeholder="Paste here…"></textarea>
+      </div>
     </section>
 
-    <section class="pane pane-output">
-      <div class="pane-header">
-        <label for="output">Output</label>
-        <button id="copy" type="button">Copy</button>
+    <div class="panels-arrow" aria-hidden="true">→</div>
+
+    <section class="code-pane code-pane--output">
+      <header class="code-pane-header">
+        <span class="step-badge">2</span>
+        <span class="code-pane-title">Cleaned output</span>
+        <button id="copy" class="copy-btn" type="button">Copy</button>
+      </header>
+      <div class="code-area">
+        <div class="line-numbers" id="output-gutter" aria-hidden="true">1</div>
+        <pre class="ws-overlay" id="output-overlay" aria-hidden="true"></pre>
+        <textarea
+          id="output"
+          class="code-input"
+          spellcheck="false"
+          autocomplete="off"
+          readonly
+          placeholder="Cleaned result will appear here."></textarea>
       </div>
-      <textarea
-        id="output"
-        spellcheck="false"
-        autocomplete="off"
-        readonly
-        placeholder="Cleaned result will appear here."></textarea>
     </section>
   </main>
 
-  <footer>
+  <section class="supporting-cards">
+    <!-- "What this does" + smart-exception note (Task 8) -->
+  </section>
+
+  <section class="stats-bar" id="stats-bar">
+    <!-- 3 metric tiles + info box (Task 9) -->
     <span id="stats"></span>
+  </section>
+
+  <footer class="page-footer">
+    <!-- attribution (Task 10) -->
   </footer>
 
   <script src="clean.js"></script>
   <script>
-    (function () {
-      const inputEl = document.getElementById('input');
-      const outputEl = document.getElementById('output');
-      const copyBtn = document.getElementById('copy');
-      const statsEl = document.getElementById('stats');
-
-      function render() {
-        const result = cleanText(inputEl.value);
-        outputEl.value = result.text;
-        const prefixDesc = describePrefix(result.stats.prefixRemoved);
-        statsEl.textContent =
-          'Lines: ' + result.stats.linesOut +
-          '   Removed: ' + prefixDesc;
-      }
-
-      function describePrefix(p) {
-        if (!p) return 'no common leading whitespace';
-        let spaces = 0, tabs = 0;
-        for (let i = 0; i < p.length; i++) {
-          if (p[i] === ' ') spaces++;
-          else if (p[i] === '\t') tabs++;
-        }
-        const parts = [];
-        if (spaces) parts.push(spaces + ' space' + (spaces === 1 ? '' : 's'));
-        if (tabs) parts.push(tabs + ' tab' + (tabs === 1 ? '' : 's'));
-        return parts.join(' + ') + ' leading';
-      }
-
-      let copyResetTimer = null;
-
-      async function copyOutput() {
-        if (copyBtn.classList.contains('copied') || copyBtn.classList.contains('failed')) {
-          return; // re-entry guard while a status flash is on screen
-        }
-
-        let ok = false;
-        try {
-          await navigator.clipboard.writeText(outputEl.value);
-          ok = true;
-        } catch (err) {
-          // Fallback: select and execCommand for older browsers / non-secure contexts.
-          outputEl.removeAttribute('readonly');
-          outputEl.select();
-          try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
-          outputEl.setAttribute('readonly', '');
-        }
-
-        copyBtn.textContent = ok ? 'Copied!' : 'Copy failed';
-        copyBtn.classList.add(ok ? 'copied' : 'failed');
-
-        if (copyResetTimer) clearTimeout(copyResetTimer);
-        copyResetTimer = setTimeout(function () {
-          copyBtn.textContent = 'Copy';
-          copyBtn.classList.remove('copied', 'failed');
-          copyResetTimer = null;
-        }, 1500);
-      }
-
-      inputEl.addEventListener('input', render);
-      copyBtn.addEventListener('click', copyOutput);
-
-      // Click the output to select-all (handy fallback).
-      outputEl.addEventListener('focus', function () { outputEl.select(); });
-
-      render();
-    })();
+    /* JS will be added in Task 11 */
   </script>
 </body>
 </html>
