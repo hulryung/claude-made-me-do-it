@@ -911,10 +911,10 @@ Replace with:
   <section class="supporting-cards" aria-label="How it works">
     <div class="info-card info-card--explainer">
       <div class="info-card-body">
-        <p class="info-card-title">
+        <h3 class="info-card-title">
           <span class="info-card-icon" aria-hidden="true">💡</span>
           What this does
-        </p>
+        </h3>
         <p class="info-card-text">
           Removes the common leading indent and trailing whitespace from each line.
           Your code's relative indentation stays intact.
@@ -970,6 +970,7 @@ Replace with:
     .info-card-title {
       margin: 0 0 0.2rem;
       font-weight: 600;
+      font-size: 14px;
       color: var(--accent);
       display: inline-flex;
       align-items: center;
@@ -983,7 +984,7 @@ Replace with:
     .info-card-icon { font-size: 16px; }
 
     .dedent-diagram { width: 130px; height: 50px; flex-shrink: 0; }
-    .dedent-diagram .diagram-pre  { color: var(--muted-2); opacity: 0.6; }
+    .dedent-diagram .diagram-pre  { color: var(--muted); }
     .dedent-diagram .diagram-post { color: var(--success); }
     .dedent-diagram .diagram-arrow { color: var(--muted); }
 
@@ -1083,13 +1084,13 @@ Replace with:
       </div>
     </div>
 
-    <aside class="stats-info">
+    <div class="stats-info" role="note">
       <span class="stats-info-icon" aria-hidden="true">ℹ</span>
       <p class="stats-info-text">
         <strong>AI paste-aware.</strong> Different from generic trim tools — it removes only
         the shared leading indent. Your code structure stays intact.
       </p>
-    </aside>
+    </div>
   </section>
 ```
 
@@ -1154,7 +1155,7 @@ Replace with:
       color: var(--fg-2);
       line-height: 1.4;
     }
-    .stats-info-text strong { color: var(--accent); }
+    .stats-info-text strong { color: var(--fg); }
 
     @media (max-width: 768px) {
       .stats-bar { grid-template-columns: 1fr; }
