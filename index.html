@@ -935,6 +935,71 @@
       // First render to seed gutters and stats.
       render();
     })();
+
+    // ---- Theme toggle ----
+    (function () {
+      'use strict';
+
+      const root      = document.documentElement;
+      const lightBtn  = document.getElementById('theme-light');
+      const darkBtn   = document.getElementById('theme-dark');
+      const resetLink = document.getElementById('theme-reset');
+      const STORAGE_KEY = 'theme';
+
+      function effectiveOSTheme() {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+
+      function setPressed(mode) {
+        lightBtn.setAttribute('aria-pressed', mode === 'light' ? 'true' : 'false');
+        darkBtn.setAttribute('aria-pressed',  mode === 'dark'  ? 'true' : 'false');
+      }
+
+      function applyOverride(mode) {
+        // mode is 'light' or 'dark'.
+        root.setAttribute('data-theme', mode);
+        try { localStorage.setItem(STORAGE_KEY, mode); } catch (_) {}
+        setPressed(mode);
+        resetLink.hidden = false;
+      }
+
+      function clearOverride() {
+        root.removeAttribute('data-theme');
+        try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+        setPressed(effectiveOSTheme());
+        resetLink.hidden = true;
+      }
+
+      // Initialize from storage if present, otherwise reflect OS.
+      let stored = null;
+      try { stored = localStorage.getItem(STORAGE_KEY); } catch (_) {}
+      if (stored === 'light' || stored === 'dark') {
+        applyOverride(stored);
+      } else {
+        setPressed(effectiveOSTheme());
+        resetLink.hidden = true;
+      }
+
+      // Click handlers.
+      lightBtn.addEventListener('click', function () { applyOverride('light'); });
+      darkBtn.addEventListener('click',  function () { applyOverride('dark');  });
+      resetLink.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        clearOverride();
+      });
+
+      // React to OS changes only when no override is active.
+      const mql = window.matchMedia('(prefers-color-scheme: dark)');
+      const onOSChange = function () {
+        let s = null;
+        try { s = localStorage.getItem(STORAGE_KEY); } catch (_) {}
+        if (s !== 'light' && s !== 'dark') {
+          setPressed(effectiveOSTheme());
+        }
+      };
+      if (typeof mql.addEventListener === 'function') mql.addEventListener('change', onOSChange);
+      else if (typeof mql.addListener === 'function') mql.addListener(onOSChange);
+    })();
   </script>
 </body>
 </html>
