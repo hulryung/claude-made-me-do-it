@@ -403,7 +403,7 @@ Replace with:
     </div>
 
     <div class="header-corner header-corner--right">
-      <div class="theme-toggle" role="radiogroup" aria-label="Theme">
+      <div class="theme-toggle" aria-label="Theme">
         <button id="theme-light" class="theme-toggle-btn" type="button" data-theme-value="light"
                 aria-pressed="false">
           <span aria-hidden="true">☀</span> Light
@@ -422,7 +422,7 @@ Replace with:
                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <span>Follows your OS by default.</span>
-        <a href="#" id="theme-reset" class="theme-reset" hidden>Reset</a>
+        <button type="button" id="theme-reset" class="theme-reset" hidden>Reset</button>
       </p>
     </div>
   </header>
@@ -512,9 +512,14 @@ Find the closing `</style>` tag in `index.html` and insert these rules immediate
       color: var(--accent);
     }
     .theme-reset {
+      background: transparent;
+      border: 0;
+      padding: 0;
       color: var(--accent);
       text-decoration: underline;
       margin-left: 0.25rem;
+      font: inherit;
+      cursor: pointer;
     }
 
     @media (max-width: 768px) {
@@ -540,7 +545,6 @@ Find the closing `</style>` tag in `index.html` and insert these rules immediate
         var(--accent) 88%,
         transparent 88%
       );
-      background-position: 0 0.2em;
       background-size: 100% 100%;
       background-repeat: no-repeat;
     }
