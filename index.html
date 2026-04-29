@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>claude-made-me-do-it</title>
+</head>
+<body>
+  <header>
+    <h1>claude-made-me-do-it</h1>
+    <p class="tagline">Paste from Claude Code or any AI tool. Get clean, copy-ready text.</p>
+  </header>
+
+  <main>
+    <section class="pane pane-input">
+      <label for="input">Input</label>
+      <textarea
+        id="input"
+        spellcheck="false"
+        autocomplete="off"
+        placeholder="Paste here…"></textarea>
+    </section>
+
+    <section class="pane pane-output">
+      <div class="pane-header">
+        <label for="output">Output</label>
+        <button id="copy" type="button">Copy</button>
+      </div>
+      <textarea
+        id="output"
+        spellcheck="false"
+        autocomplete="off"
+        readonly
+        placeholder="Cleaned result will appear here."></textarea>
+    </section>
+  </main>
+
+  <footer>
+    <span id="stats"></span>
+  </footer>
+
+  <script src="clean.js"></script>
+  <script>
+    // wiring goes here in Task 9
+  </script>
+</body>
+</html>
