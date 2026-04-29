@@ -1,0 +1,1754 @@
+# UI Redesign Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Replace the existing minimal `index.html` UI with a richer visual design — handwritten title, speech-bubble illustration, feature badges, code panels with line numbers and leading-whitespace dot visualization, supporting cards, redesigned stats footer, and a Light/Dark toggle with localStorage persistence — while leaving `clean.js` and the algorithm test page untouched.
+
+**Architecture:** Single-file rewrite of `index.html` with inline CSS and inline JS. One new external dependency: a Google Fonts `<link>` for the `Caveat` and `Inter` typefaces. All other assets (icons, illustrations, theme colors) are inline SVG and CSS variables. The existing `cleanText` function from `clean.js` is the only computation module — UI helpers (overlay rendering, line-number gutter, scroll sync, theme toggle) are written inline in `index.html`.
+
+**Tech Stack:** HTML5, CSS (CSS variables, `prefers-color-scheme`, grid + flexbox), vanilla JavaScript (no modules, no bundler). Google Fonts for `Caveat` and `Inter`. `localStorage` for theme persistence.
+
+**Spec reference:** `/Users/dkkang/dev/paste/docs/superpowers/specs/2026-04-29-ui-redesign-design.md`
+
+**Working directory:** `/Users/dkkang/dev/paste`
+
+---
+
+## File Structure
+
+| File | Purpose | Status |
+|---|---|---|
+| `index.html` | UI: HTML structure + inline CSS + inline JS. Wires `cleanText` from `clean.js`. | **Rewrite** |
+| `clean.js` | Pure algorithm. | **Unchanged** |
+| `tests.html` | Browser-runnable algorithm tests. | **Unchanged** |
+| `README.md` | Project README. | **Unchanged** |
+
+The redesign is a single-file rewrite. We do **not** split CSS or JS into separate files — the no-build constraint is preserved. To keep the implementation manageable, the rewrite is broken into incremental tasks below; intermediate states are committed and visually verifiable in a browser.
+
+`clean.js` and `tests.html` MUST NOT be modified by any task in this plan. The 19-assertion test page must continue to pass after every commit.
+
+---
+
+## Conventions used by every task
+
+- Use `git -c commit.gpgsign=false commit -m "<message>"` for every commit (no signing).
+- After each task, run a markup sanity check (described in Task 0) and confirm `tests.html` opens cleanly.
+- Working directory for every task: `/Users/dkkang/dev/paste`.
+
+---
+
+## Task 0: Pre-flight checks (no code changes)
+
+**Files:** none
+
+This task confirms the starting state before any rewrite begins.
+
+- [ ] **Step 1: Confirm working tree is clean and on `main`**
+
+Run:
+
+```bash
+git status -sb
+git rev-parse --abbrev-ref HEAD
+```
+
+Expected:
+- `git status -sb` shows `## main...origin/main` and an empty file list.
+- Branch is `main`.
+
+If the tree is dirty, stop and report.
+
+- [ ] **Step 2: Confirm current `index.html` exists and the algorithm tests still pass**
+
+Run:
+
+```bash
+ls -la index.html clean.js tests.html
+node -e "
+  const fs = require('fs');
+  eval(fs.readFileSync('clean.js','utf8'));
+  const r = cleanText('  echo a\n  echo b');
+  if (r.text !== 'echo a\necho b') { console.error('FAIL', r); process.exit(1); }
+  console.log('algorithm sanity ok');
+"
+```
+
+Expected: all three files listed; node prints `algorithm sanity ok`.
+
+- [ ] **Step 3: Establish the markup sanity check**
+
+This is the check every later task will use after touching `index.html`. Run it now to confirm the current file passes (it should — current `index.html` has all the required ids):
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"input\"','id=\"output\"','id=\"copy\"','id=\"stats\"','clean.js'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 4: No commit — this is verification only.**
+
+---
+
+## Task 1: Replace `index.html` with the new shell (head + empty layout)
+
+This task wipes the current `index.html` and replaces it with the bare structural skeleton of the new design. Visual content is not yet styled or wired; later tasks fill in the styling, the panels, the cards, the stats, and the JS. This commit produces a page that loads cleanly but doesn't do much yet.
+
+**Files:**
+- Modify (rewrite): `/Users/dkkang/dev/paste/index.html`
+
+- [ ] **Step 1: Replace the entire contents of `index.html` with the new shell**
+
+Write this exact content to `index.html` (overwriting the old file):
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude Made Me Do It</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    /* CSS will be added in Task 2 */
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <!-- speech bubble + title + theme toggle (Task 3) -->
+  </header>
+
+  <section class="feature-badges">
+    <!-- 3 feature badges (Task 4) -->
+  </section>
+
+  <main class="panels">
+    <!-- input + output code panels (Tasks 5-7) -->
+    <section class="code-pane code-pane--input">
+      <header class="code-pane-header">
+        <span class="step-badge">1</span>
+        <span class="code-pane-title">Paste AI-copied text here</span>
+        <span class="code-pane-hint">Ctrl / ⌘ + V</span>
+      </header>
+      <div class="code-area">
+        <div class="line-numbers" id="input-gutter" aria-hidden="true">1</div>
+        <pre class="ws-overlay" id="input-overlay" aria-hidden="true"></pre>
+        <textarea
+          id="input"
+          class="code-input"
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"
+          placeholder="Paste here…"></textarea>
+      </div>
+    </section>
+
+    <div class="panels-arrow" aria-hidden="true">→</div>
+
+    <section class="code-pane code-pane--output">
+      <header class="code-pane-header">
+        <span class="step-badge">2</span>
+        <span class="code-pane-title">Cleaned output</span>
+        <button id="copy" class="copy-btn" type="button">Copy</button>
+      </header>
+      <div class="code-area">
+        <div class="line-numbers" id="output-gutter" aria-hidden="true">1</div>
+        <pre class="ws-overlay" id="output-overlay" aria-hidden="true"></pre>
+        <textarea
+          id="output"
+          class="code-input"
+          spellcheck="false"
+          autocomplete="off"
+          readonly
+          placeholder="Cleaned result will appear here."></textarea>
+      </div>
+    </section>
+  </main>
+
+  <section class="supporting-cards">
+    <!-- "What this does" + smart-exception note (Task 8) -->
+  </section>
+
+  <section class="stats-bar" id="stats-bar">
+    <!-- 3 metric tiles + info box (Task 9) -->
+    <span id="stats"></span>
+  </section>
+
+  <footer class="page-footer">
+    <!-- attribution (Task 10) -->
+  </footer>
+
+  <script src="clean.js"></script>
+  <script>
+    /* JS will be added in Task 11 */
+  </script>
+</body>
+</html>
+```
+
+- [ ] **Step 2: Markup sanity check still passes**
+
+Run:
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"input\"','id=\"output\"','id=\"copy\"','id=\"stats\"','clean.js'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "refactor(ui): replace index.html with redesign shell"
+```
+
+---
+
+## Task 2: Base CSS — variables, reset, typography, layout grid
+
+This task adds the foundation styles: CSS variables for both themes, type scale using Inter and Caveat, a top-down page layout grid, and shared utilities. No component-specific styling yet — the page will look tidy but mostly empty.
+
+**Files:**
+- Modify: `/Users/dkkang/dev/paste/index.html` — replace the empty `<style>` block
+
+- [ ] **Step 1: Replace the empty `<style></style>` block with this content**
+
+Find this section in `index.html`:
+
+```html
+  <style>
+    /* CSS will be added in Task 2 */
+  </style>
+```
+
+Replace it with:
+
+```html
+  <style>
+    /* ---- Theme variables ---- */
+    :root {
+      --bg: #f7f7f8;
+      --surface: #ffffff;
+      --surface-2: #fafafa;
+      --fg: #1a1a1a;
+      --fg-2: #3a3a3a;
+      --muted: #666;
+      --muted-2: #888;
+      --border: #e3e3e6;
+      --border-strong: #cfcfd3;
+      --accent: #6d4cff;
+      --accent-soft: #ece7ff;
+      --accent-fg: #ffffff;
+      --success: #16a34a;
+      --failure: #c0392b;
+      --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --gutter: 1.25rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0e1014;
+        --surface: #15181d;
+        --surface-2: #1b1f26;
+        --fg: #e6e6e6;
+        --fg-2: #c9c9cc;
+        --muted: #8a8d93;
+        --muted-2: #6f7178;
+        --border: #2a2d33;
+        --border-strong: #3a3d44;
+        --accent: #8a6bff;
+        --accent-soft: #2a2244;
+        --accent-fg: #ffffff;
+        --success: #22c55e;
+        --failure: #ef4444;
+        --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0e1014;
+      --surface: #15181d;
+      --surface-2: #1b1f26;
+      --fg: #e6e6e6;
+      --fg-2: #c9c9cc;
+      --muted: #8a8d93;
+      --muted-2: #6f7178;
+      --border: #2a2d33;
+      --border-strong: #3a3d44;
+      --accent: #8a6bff;
+      --accent-soft: #2a2244;
+      --accent-fg: #ffffff;
+      --success: #22c55e;
+      --failure: #ef4444;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
+    }
+
+    /* ---- Reset ---- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---- Page grid ---- */
+    body {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto auto auto;
+      gap: var(--gutter);
+      padding: var(--gutter) calc(var(--gutter) * 2);
+    }
+    @media (max-width: 768px) {
+      body { padding: var(--gutter); }
+    }
+
+    /* ---- Reusable utilities ---- */
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+
+    /* ---- Code monospace stack used by panels and stats ---- */
+    .mono {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
+  </style>
+```
+
+- [ ] **Step 2: Markup sanity check**
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"input\"','id=\"output\"','id=\"copy\"','id=\"stats\"','clean.js'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "feat(ui): add base CSS — theme variables, reset, page grid"
+```
+
+---
+
+## Task 3: Header — speech bubble, title, theme toggle
+
+**Files:**
+- Modify: `/Users/dkkang/dev/paste/index.html` — fill the `<header class="page-header">` block; add header-related CSS at the end of the existing `<style>`.
+
+- [ ] **Step 1: Replace the empty header**
+
+Find this in `index.html`:
+
+```html
+  <header class="page-header">
+    <!-- speech bubble + title + theme toggle (Task 3) -->
+  </header>
+```
+
+Replace with:
+
+```html
+  <header class="page-header">
+    <div class="header-corner header-corner--left">
+      <svg class="speech-bubble" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="6" y="46" width="50" height="40" rx="6"
+              fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <text x="14" y="73" font-family="ui-monospace, monospace" font-size="20"
+              fill="currentColor">&gt;_</text>
+        <path d="M70 30 Q 70 14, 90 14 L 178 14 Q 196 14, 196 30 L 196 56 Q 196 72, 178 72
+                 L 110 72 L 86 90 L 92 72 L 90 72 Q 70 72, 70 56 Z"
+              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+        <text x="98" y="50" font-family="Caveat, cursive" font-size="22"
+              fill="currentColor">No more whitespace.</text>
+      </svg>
+    </div>
+
+    <div class="header-center">
+      <h1 class="page-title">
+        Claude Made Me Do It<span class="title-accent">.</span>
+      </h1>
+      <p class="page-tagline">
+        Strips the leftover whitespace AI loves to add. <span aria-hidden="true">🧹</span>
+      </p>
+    </div>
+
+    <div class="header-corner header-corner--right">
+      <div class="theme-toggle" role="radiogroup" aria-label="Theme">
+        <button id="theme-light" class="theme-toggle-btn" type="button" data-theme-value="light"
+                aria-pressed="false">
+          <span aria-hidden="true">☀</span> Light
+        </button>
+        <button id="theme-dark" class="theme-toggle-btn" type="button" data-theme-value="dark"
+                aria-pressed="false">
+          <span aria-hidden="true">🌙</span> Dark
+        </button>
+      </div>
+      <p class="theme-hint">
+        <svg class="theme-hint-arrow" viewBox="0 0 30 40" xmlns="http://www.w3.org/2000/svg"
+             aria-hidden="true">
+          <path d="M14 36 Q 14 18, 26 8" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round"/>
+          <path d="M22 6 L 28 8 L 26 14" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Follows your OS by default.</span>
+        <a href="#" id="theme-reset" class="theme-reset" hidden>Reset</a>
+      </p>
+    </div>
+  </header>
+```
+
+- [ ] **Step 2: Append header CSS at the end of the existing `<style>` block**
+
+Find the closing `</style>` tag in `index.html` and insert these rules immediately before it:
+
+```css
+    /* ---- Header ---- */
+    .page-header {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: var(--gutter);
+    }
+    .header-corner {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .header-corner--left { justify-self: start; align-self: start; }
+    .header-corner--right { justify-self: end; align-self: start; align-items: flex-end; }
+
+    .speech-bubble {
+      width: 200px;
+      height: 110px;
+      color: var(--fg-2);
+    }
+
+    .header-center { text-align: center; }
+    .page-title {
+      font-family: "Caveat", cursive;
+      font-weight: 700;
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      line-height: 1.05;
+      margin: 0;
+      letter-spacing: 0.01em;
+      color: var(--fg);
+    }
+    .title-accent { color: var(--accent); }
+    .page-tagline {
+      margin: 0.4rem 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .theme-toggle {
+      display: inline-flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px;
+      box-shadow: var(--shadow);
+    }
+    .theme-toggle-btn {
+      background: transparent;
+      border: 0;
+      color: var(--muted);
+      font: inherit;
+      font-size: 13px;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .theme-toggle-btn[aria-pressed="true"] {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .theme-hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .theme-hint-arrow {
+      width: 18px;
+      height: 24px;
+      color: var(--accent);
+    }
+    .theme-reset {
+      color: var(--accent);
+      text-decoration: underline;
+      margin-left: 0.25rem;
+    }
+
+    @media (max-width: 768px) {
+      .page-header {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .header-corner--left,
+      .header-corner--right {
+        justify-self: center;
+        align-items: center;
+      }
+    }
+
+    /* ---- Title underline accent (purple hand-drawn under "It") ---- */
+    .page-title { position: relative; display: inline-block; padding: 0 0.1em; }
+    .page-title .it-accent {
+      position: relative;
+      display: inline-block;
+      background-image: linear-gradient(
+        transparent 78%,
+        var(--accent) 78%,
+        var(--accent) 88%,
+        transparent 88%
+      );
+      background-position: 0 0.2em;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+    }
+```
+
+- [ ] **Step 3: Wrap the word "It" in the title with the accent span**
+
+Find this line in the header HTML you added in Step 1:
+
+```html
+        Claude Made Me Do It<span class="title-accent">.</span>
+```
+
+Replace with:
+
+```html
+        Claude Made Me Do <span class="it-accent">It</span><span class="title-accent">.</span>
+```
+
+- [ ] **Step 4: Markup sanity check**
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"input\"','id=\"output\"','id=\"copy\"','id=\"stats\"','clean.js',
+                    'class=\"page-title\"','class=\"theme-toggle\"','it-accent'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "feat(ui): header with speech bubble, handwritten title, theme toggle"
+```
+
+---
+
+## Task 4: Feature badges row
+
+**Files:**
+- Modify: `/Users/dkkang/dev/paste/index.html` — fill `<section class="feature-badges">`; append badge CSS.
+
+- [ ] **Step 1: Replace the empty feature-badges section**
+
+Find:
+
+```html
+  <section class="feature-badges">
+    <!-- 3 feature badges (Task 4) -->
+  </section>
+```
+
+Replace with:
+
+```html
+  <section class="feature-badges" aria-label="Feature highlights">
+    <div class="feature-badge">
+      <svg class="feature-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M7 10V8a5 5 0 0 1 10 0v2" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round"/>
+        <rect x="5" y="10" width="14" height="10" rx="2"
+              fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+      <div class="feature-text">
+        <span class="feature-title">100% Private</span>
+        <span class="feature-sub">Runs entirely in your browser.</span>
+      </div>
+    </div>
+
+    <div class="feature-badge">
+      <svg class="feature-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3 L 20 6 V 12 C 20 17 16 20 12 21 C 8 20 4 17 4 12 V 6 Z"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+      <div class="feature-text">
+        <span class="feature-title">No Upload</span>
+        <span class="feature-sub">Nothing leaves your tab.</span>
+      </div>
+    </div>
+
+    <div class="feature-badge">
+      <svg class="feature-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M13 3 L 5 13 H 11 L 9 21 L 19 11 H 13 Z"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+      <div class="feature-text">
+        <span class="feature-title">Instant</span>
+        <span class="feature-sub">Cleaned the moment you paste.</span>
+      </div>
+    </div>
+  </section>
+```
+
+- [ ] **Step 2: Append badge CSS before the closing `</style>`**
+
+```css
+    /* ---- Feature badges ---- */
+    .feature-badges {
+      display: flex;
+      gap: 2.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .feature-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .feature-icon {
+      width: 22px;
+      height: 22px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .feature-text {
+      display: inline-flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+    .feature-title { font-weight: 600; color: var(--fg); }
+    .feature-sub { color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 768px) {
+      .feature-badges {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.8rem;
+      }
+    }
+```
+
+- [ ] **Step 3: Markup sanity check (with feature-badge added to the required list)**
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"input\"','id=\"output\"','id=\"copy\"','id=\"stats\"','clean.js',
+                    'class=\"feature-badge\"'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "feat(ui): feature badges row (Private, No Upload, Instant)"
+```
+
+---
+
+## Task 5: Code panels — base styling and shared structure
+
+This task styles the two code panels and the arrow between them. The textareas, line-number gutters, and overlays already exist in the markup (added in Task 1) — this task makes them look right. JS wiring (live updates, scroll sync, overlay rendering) is in Task 11.
+
+**Files:**
+- Modify: `/Users/dkkang/dev/paste/index.html` — append panel CSS.
+
+- [ ] **Step 1: Append panel CSS before the closing `</style>`**
+
+```css
+    /* ---- Code panels ---- */
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.75rem;
+      align-items: stretch;
+      min-height: 0;
+    }
+    .panels-arrow {
+      align-self: center;
+      color: var(--muted);
+      font-size: 22px;
+      user-select: none;
+    }
+
+    .code-pane {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 380px;
+    }
+    .code-pane-header {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--accent-fg);
+      font-weight: 600;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .code-pane-title {
+      font-weight: 600;
+      color: var(--fg);
+      flex: 1;
+      min-width: 0;
+    }
+    .code-pane-hint {
+      color: var(--muted);
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: var(--surface-2);
+      padding: 0.2rem 0.5rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .copy-btn {
+      background: var(--accent);
+      color: var(--accent-fg);
+      border: 0;
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-sm);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .copy-btn:active { transform: translateY(1px); }
+    .copy-btn.copied { background: var(--success); }
+    .copy-btn.failed { background: var(--failure); }
+
+    .code-area {
+      position: relative;
+      flex: 1;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      min-height: 0;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .line-numbers {
+      grid-column: 1;
+      padding: 0.75rem 0.6rem 0.75rem 0.85rem;
+      min-width: 2.5em;
+      text-align: right;
+      color: var(--muted-2);
+      background: var(--surface-2);
+      border-right: 1px solid var(--border);
+      white-space: pre;
+      overflow: hidden;
+      user-select: none;
+      border-bottom-left-radius: var(--radius);
+    }
+    .ws-overlay {
+      grid-column: 2;
+      grid-row: 1;
+      margin: 0;
+      padding: 0.75rem 0.85rem;
+      color: transparent;
+      pointer-events: none;
+      white-space: pre;
+      overflow: hidden;
+      font: inherit;
+      line-height: inherit;
+      border-bottom-right-radius: var(--radius);
+    }
+    .ws-overlay .ws-dot { color: var(--muted-2); opacity: 0.7; }
+    .code-input {
+      grid-column: 2;
+      grid-row: 1;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0.75rem 0.85rem;
+      border: 0;
+      outline: 0;
+      resize: none;
+      background: transparent;
+      color: var(--fg);
+      font: inherit;
+      line-height: inherit;
+      tab-size: 4;
+      white-space: pre;
+      overflow: auto;
+      border-bottom-right-radius: var(--radius);
+    }
+    .code-input::placeholder { color: var(--muted); }
+    .code-input:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+      border-radius: var(--radius-sm);
+    }
+
+    @media (max-width: 768px) {
+      .panels { grid-template-columns: 1fr; grid-template-rows: 1fr auto 1fr; }
+      .panels-arrow { transform: rotate(90deg); }
+    }
+```
+
+- [ ] **Step 2: Markup sanity check**
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"input\"','id=\"output\"','id=\"copy\"','id=\"stats\"','clean.js',
+                    'class=\"panels\"','class=\"code-pane','step-badge'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "feat(ui): style code panels, gutter, overlay, copy button"
+```
+
+---
+
+## Task 6: Supporting cards — "What this does" + smart-exception note
+
+**Files:**
+- Modify: `/Users/dkkang/dev/paste/index.html` — fill `<section class="supporting-cards">`; append CSS.
+
+- [ ] **Step 1: Replace the empty supporting-cards section**
+
+Find:
+
+```html
+  <section class="supporting-cards">
+    <!-- "What this does" + smart-exception note (Task 8) -->
+  </section>
+```
+
+Replace with:
+
+```html
+  <section class="supporting-cards" aria-label="How it works">
+    <div class="info-card info-card--explainer">
+      <div class="info-card-body">
+        <p class="info-card-title">
+          <span class="info-card-icon" aria-hidden="true">💡</span>
+          What this does
+        </p>
+        <p class="info-card-text">
+          Removes the common leading indent and trailing whitespace from each line.
+          Your code's relative indentation stays intact.
+        </p>
+      </div>
+      <svg class="dedent-diagram" viewBox="0 0 160 60" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="3" stroke-linecap="round">
+          <line class="diagram-pre"   x1="6"  y1="14" x2="60" y2="14"/>
+          <line class="diagram-pre"   x1="14" y1="30" x2="64" y2="30"/>
+          <line class="diagram-pre"   x1="6"  y1="46" x2="60" y2="46"/>
+        </g>
+        <g class="diagram-arrow" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           fill="none">
+          <line x1="78" y1="30" x2="92" y2="30"/>
+          <polyline points="86,24 92,30 86,36"/>
+        </g>
+        <g stroke="currentColor" stroke-width="3" stroke-linecap="round">
+          <line class="diagram-post" x1="104" y1="14" x2="154" y2="14"/>
+          <line class="diagram-post" x1="112" y1="30" x2="158" y2="30"/>
+          <line class="diagram-post" x1="104" y1="46" x2="154" y2="46"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="info-card info-card--note">
+      <p class="info-card-text">
+        <span class="info-card-icon" aria-hidden="true">✨</span>
+        Detects partial-copy artifacts at the first or last line and fixes them automatically.
+      </p>
+    </div>
+  </section>
+```
+
+- [ ] **Step 2: Append CSS before the closing `</style>`**
+
+```css
+    /* ---- Supporting cards ---- */
+    .supporting-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .info-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .info-card-body { flex: 1; min-width: 0; }
+    .info-card-title {
+      margin: 0 0 0.2rem;
+      font-weight: 600;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .info-card-text {
+      margin: 0;
+      color: var(--fg-2);
+      line-height: 1.55;
+    }
+    .info-card-icon { font-size: 16px; }
+
+    .dedent-diagram { width: 130px; height: 50px; flex-shrink: 0; }
+    .dedent-diagram .diagram-pre  { color: var(--muted-2); opacity: 0.6; }
+    .dedent-diagram .diagram-post { color: var(--success); }
+    .dedent-diagram .diagram-arrow { color: var(--muted); }
+
+    @media (max-width: 768px) {
+      .supporting-cards { grid-template-columns: 1fr; }
+      .dedent-diagram { display: none; }
+    }
+```
+
+- [ ] **Step 3: Markup sanity check**
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"input\"','id=\"output\"','id=\"copy\"','id=\"stats\"','clean.js',
+                    'class=\"supporting-cards\"','info-card','dedent-diagram'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "feat(ui): supporting cards — explainer with diagram + smart-exception note"
+```
+
+---
+
+## Task 7: Stats footer — three metrics + info box
+
+**Files:**
+- Modify: `/Users/dkkang/dev/paste/index.html` — replace `<section class="stats-bar">`; append CSS.
+
+- [ ] **Step 1: Replace the stats-bar section**
+
+Find:
+
+```html
+  <section class="stats-bar" id="stats-bar">
+    <!-- 3 metric tiles + info box (Task 9) -->
+    <span id="stats"></span>
+  </section>
+```
+
+Replace with:
+
+```html
+  <section class="stats-bar" aria-label="Run statistics">
+    <div class="stats-metrics" id="stats">
+      <div class="stat-tile">
+        <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 4 L 5 20 L 19 20" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round"/>
+          <path d="M8 16 L 11 12 L 14 14 L 18 8" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+        <div class="stat-text">
+          <span class="stat-label">Lines</span>
+          <span class="stat-value" id="stat-lines">0</span>
+        </div>
+      </div>
+
+      <div class="stat-tile">
+        <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="6" y="3" width="12" height="18" rx="2"
+                fill="none" stroke="currentColor" stroke-width="2"/>
+          <line x1="9" y1="8"  x2="15" y2="8"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="12" x2="13" y2="12"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div class="stat-text">
+          <span class="stat-label">Removed common indent</span>
+          <span class="stat-value" id="stat-removed">none</span>
+        </div>
+      </div>
+
+      <div class="stat-tile">
+        <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="6" y="3" width="12" height="18" rx="2"
+                fill="none" stroke="currentColor" stroke-width="2"/>
+          <line x1="9" y1="8"  x2="15" y2="8"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="12" x2="11" y2="12"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div class="stat-text">
+          <span class="stat-label">Trailing spaces trimmed</span>
+          <span class="stat-value" id="stat-trailing">—</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="stats-info">
+      <span class="stats-info-icon" aria-hidden="true">ℹ</span>
+      <p class="stats-info-text">
+        <strong>AI paste-aware.</strong> Different from generic trim tools — it removes only
+        the shared leading indent. Your code structure stays intact.
+      </p>
+    </aside>
+  </section>
+```
+
+- [ ] **Step 2: Append CSS before the closing `</style>`**
+
+```css
+    /* ---- Stats bar ---- */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: stretch;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 1rem;
+      box-shadow: var(--shadow);
+    }
+    .stats-metrics {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .stat-tile {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .stat-icon {
+      width: 28px;
+      height: 28px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .stat-text { display: flex; flex-direction: column; line-height: 1.2; }
+    .stat-label { color: var(--muted); font-size: 12px; }
+    .stat-value {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .stats-info {
+      max-width: 360px;
+      background: var(--accent-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.85rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+    }
+    .stats-info-icon {
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .stats-info-text {
+      margin: 0;
+      font-size: 12px;
+      color: var(--fg-2);
+      line-height: 1.4;
+    }
+    .stats-info-text strong { color: var(--accent); }
+
+    @media (max-width: 768px) {
+      .stats-bar { grid-template-columns: 1fr; }
+      .stats-metrics { gap: 1rem; }
+    }
+```
+
+- [ ] **Step 3: Markup sanity check**
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"input\"','id=\"output\"','id=\"copy\"','id=\"stats\"','clean.js',
+                    'id=\"stat-lines\"','id=\"stat-removed\"','id=\"stat-trailing\"'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "feat(ui): redesigned stats bar with metric tiles and info box"
+```
+
+---
+
+## Task 8: Page footer
+
+**Files:**
+- Modify: `/Users/dkkang/dev/paste/index.html` — fill the page footer; append CSS.
+
+- [ ] **Step 1: Replace the empty footer**
+
+Find:
+
+```html
+  <footer class="page-footer">
+    <!-- attribution (Task 10) -->
+  </footer>
+```
+
+Replace with:
+
+```html
+  <footer class="page-footer">
+    <p class="footer-slot footer-slot--left">
+      <span aria-hidden="true">❤</span>
+      Made because Claude Code's copy-paste keeps breaking my terminal.
+    </p>
+    <p class="footer-slot footer-slot--center">
+      Made with <span aria-hidden="true">☕</span> and frustration
+    </p>
+    <p class="footer-slot footer-slot--right">
+      Open source •
+      <a href="https://github.com/hulryung/claude-made-me-do-it"
+         target="_blank" rel="noopener noreferrer">
+        <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor"
+            d="M12 0.5C5.65 0.5 0.5 5.65 0.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.79-.25.79-.55
+               0-.27-.01-1.17-.02-2.13-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.27-1.69-1.27-1.69
+               -1.04-.71.08-.7.08-.7 1.15.08 1.75 1.18 1.75 1.18 1.02 1.75 2.69 1.24 3.34.95
+               .1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07
+               -.12-.29-.51-1.46.11-3.05 0 0 .96-.31 3.16 1.17.92-.26 1.91-.39 2.89-.39
+               .98 0 1.97.13 2.89.39 2.2-1.48 3.16-1.17 3.16-1.17.62 1.59.23 2.76.11 3.05
+               .73.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.25 5.65.41.36.78 1.06.78 2.13
+               0 1.54-.01 2.78-.01 3.16 0 .31.21.66.79.55C20.71 21.39 24 17.08 24 12 24 5.65 18.85 0.5 12 0.5z"/>
+        </svg>
+        GitHub
+      </a>
+    </p>
+  </footer>
+```
+
+- [ ] **Step 2: Append CSS before the closing `</style>`**
+
+```css
+    /* ---- Page footer ---- */
+    .page-footer {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 1rem;
+      align-items: center;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .footer-slot { margin: 0; }
+    .footer-slot--left { justify-self: start; }
+    .footer-slot--center { justify-self: center; }
+    .footer-slot--right { justify-self: end; }
+    .footer-slot a {
+      color: var(--fg-2);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .footer-slot a:hover { color: var(--accent); }
+    .github-icon { width: 14px; height: 14px; }
+
+    @media (max-width: 768px) {
+      .page-footer {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .footer-slot--left,
+      .footer-slot--center,
+      .footer-slot--right { justify-self: center; }
+    }
+```
+
+- [ ] **Step 3: Markup sanity check**
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"input\"','id=\"output\"','id=\"copy\"','id=\"stats\"','clean.js',
+                    'class=\"page-footer\"','github.com/hulryung'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "feat(ui): page footer with attribution and GitHub link"
+```
+
+---
+
+## Task 9: Wire JS — render pipeline (input → cleanText → output, gutter, overlay, stats)
+
+This task replaces the empty bottom `<script>` block with the full wiring: live render, line numbers, whitespace overlay, scroll sync, and the redesigned stats. Theme toggle is wired separately in Task 10. Copy button is wired here so the page becomes fully interactive at this commit.
+
+**Files:**
+- Modify: `/Users/dkkang/dev/paste/index.html` — replace the placeholder `<script>` block at the end of `<body>`.
+
+- [ ] **Step 1: Replace the placeholder bottom script**
+
+Find:
+
+```html
+  <script src="clean.js"></script>
+  <script>
+    /* JS will be added in Task 11 */
+  </script>
+```
+
+Replace the second `<script>` block with:
+
+```html
+  <script>
+    (function () {
+      'use strict';
+
+      const inputEl    = document.getElementById('input');
+      const outputEl   = document.getElementById('output');
+      const inputGut   = document.getElementById('input-gutter');
+      const outputGut  = document.getElementById('output-gutter');
+      const inputOver  = document.getElementById('input-overlay');
+      const outputOver = document.getElementById('output-overlay');
+      const copyBtn    = document.getElementById('copy');
+      const statLines    = document.getElementById('stat-lines');
+      const statRemoved  = document.getElementById('stat-removed');
+      const statTrailing = document.getElementById('stat-trailing');
+
+      // ---- Helpers ----
+
+      function lineCount(text) {
+        if (text.length === 0) return 1;
+        let n = 1;
+        for (let i = 0; i < text.length; i++) if (text.charCodeAt(i) === 10) n++;
+        return n;
+      }
+
+      function gutterText(n) {
+        const out = new Array(n);
+        for (let i = 0; i < n; i++) out[i] = String(i + 1);
+        return out.join('\n');
+      }
+
+      // Render the leading-whitespace overlay. Body text is left as-is
+      // but transparent (CSS does that); only leading whitespace runs are
+      // wrapped in a span so the dot/arrow glyphs can be colored.
+      function overlayHTML(text) {
+        const lines = text.split('\n');
+        const escaped = new Array(lines.length);
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          let lead = '';
+          let j = 0;
+          while (j < line.length && (line.charCodeAt(j) === 32 || line.charCodeAt(j) === 9)) {
+            lead += line[j] === '\t' ? '→' : '·';
+            j++;
+          }
+          // The rest of the line stays as-is (escaped) so width matches the textarea.
+          const rest = line.slice(j)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          escaped[i] = lead.length > 0
+            ? '<span class="ws-dot">' + lead + '</span>' + rest
+            : rest;
+        }
+        return escaped.join('\n');
+      }
+
+      function describePrefix(p) {
+        if (!p) return 'none';
+        let spaces = 0, tabs = 0;
+        for (let i = 0; i < p.length; i++) {
+          if (p[i] === ' ') spaces++;
+          else if (p[i] === '\t') tabs++;
+        }
+        const parts = [];
+        if (spaces) parts.push(spaces + ' space' + (spaces === 1 ? '' : 's'));
+        if (tabs)   parts.push(tabs   + ' tab'   + (tabs   === 1 ? '' : 's'));
+        return parts.join(' + ');
+      }
+
+      function anyTrailingTrimmed(raw) {
+        // True if any line has trailing whitespace that the algorithm strips.
+        const lines = raw.replace(/\r\n?/g, '\n').split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          if (/[ \t]+$/.test(lines[i])) return true;
+        }
+        return false;
+      }
+
+      // ---- Render ----
+
+      function render() {
+        const raw = inputEl.value;
+        const result = cleanText(raw);
+        outputEl.value = result.text;
+
+        const inLines  = lineCount(raw);
+        const outLines = lineCount(result.text);
+        inputGut.textContent  = gutterText(inLines);
+        outputGut.textContent = gutterText(outLines);
+        inputOver.innerHTML  = overlayHTML(raw);
+        outputOver.innerHTML = overlayHTML(result.text);
+
+        statLines.textContent    = String(result.stats.linesOut);
+        statRemoved.textContent  = describePrefix(result.stats.prefixRemoved);
+        statTrailing.textContent = anyTrailingTrimmed(raw) ? '✓' : '—';
+
+        // Scroll-sync after content changes (e.g. paste auto-scrolls).
+        syncScroll(inputEl,  inputGut,  inputOver);
+        syncScroll(outputEl, outputGut, outputOver);
+      }
+
+      function syncScroll(textarea, gutter, overlay) {
+        gutter.scrollTop  = textarea.scrollTop;
+        overlay.scrollTop = textarea.scrollTop;
+        overlay.scrollLeft = textarea.scrollLeft;
+      }
+
+      inputEl.addEventListener('input', render);
+      inputEl.addEventListener('scroll',  function () { syncScroll(inputEl,  inputGut,  inputOver);  });
+      outputEl.addEventListener('scroll', function () { syncScroll(outputEl, outputGut, outputOver); });
+
+      // ---- Copy button (preserved logic from previous version) ----
+
+      let copyResetTimer = null;
+      async function copyOutput() {
+        if (copyBtn.classList.contains('copied') || copyBtn.classList.contains('failed')) return;
+        let ok = false;
+        try {
+          await navigator.clipboard.writeText(outputEl.value);
+          ok = true;
+        } catch (err) {
+          outputEl.removeAttribute('readonly');
+          outputEl.select();
+          try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+          outputEl.setAttribute('readonly', '');
+        }
+        copyBtn.textContent = ok ? 'Copied!' : 'Copy failed';
+        copyBtn.classList.add(ok ? 'copied' : 'failed');
+        if (copyResetTimer) clearTimeout(copyResetTimer);
+        copyResetTimer = setTimeout(function () {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied', 'failed');
+          copyResetTimer = null;
+        }, 1500);
+      }
+      copyBtn.addEventListener('click', copyOutput);
+
+      // First render to seed gutters and stats.
+      render();
+    })();
+  </script>
+```
+
+- [ ] **Step 2: Verify in node that the wiring would work — by simulating a paste against `cleanText` and the stats helpers**
+
+```bash
+node -e "
+  const fs = require('fs');
+  eval(fs.readFileSync('clean.js','utf8'));
+
+  // Re-create the stats helpers in node and verify expected outputs.
+  function describePrefix(p) {
+    if (!p) return 'none';
+    let s=0,t=0;
+    for (const c of p) { if (c===' ') s++; else if (c==='\t') t++; }
+    const parts = [];
+    if (s) parts.push(s + ' space' + (s===1?'':'s'));
+    if (t) parts.push(t + ' tab' + (t===1?'':'s'));
+    return parts.join(' + ');
+  }
+  function anyTrailingTrimmed(raw) {
+    const lines = raw.replace(/\r\n?/g,'\n').split('\n');
+    return lines.some(l => /[ \t]+\$/.test(l));
+  }
+
+  const input = '  echo a   \n  echo b\n  done';
+  const r = cleanText(input);
+  const desc = describePrefix(r.stats.prefixRemoved);
+  const trail = anyTrailingTrimmed(input) ? '✓' : '—';
+  if (r.text !== 'echo a\necho b\ndone') { console.error('text wrong', r.text); process.exit(1); }
+  if (desc !== '2 spaces') { console.error('desc wrong', desc); process.exit(1); }
+  if (trail !== '✓') { console.error('trail wrong', trail); process.exit(1); }
+  console.log('wiring sanity ok:', { lines: r.stats.linesOut, removed: desc, trailing: trail });
+"
+```
+
+Expected: `wiring sanity ok: { lines: 3, removed: '2 spaces', trailing: '✓' }`.
+
+- [ ] **Step 3: Markup sanity check**
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"input\"','id=\"output\"','id=\"copy\"','id=\"stats\"','clean.js',
+                    'function render','syncScroll','overlayHTML'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "feat(ui): wire input/output, gutter, overlay, scroll-sync, stats, copy"
+```
+
+---
+
+## Task 10: Wire JS — theme toggle with localStorage and `Reset` link
+
+**Files:**
+- Modify: `/Users/dkkang/dev/paste/index.html` — append a second IIFE inside the existing bottom `<script>` block.
+
+- [ ] **Step 1: Append the theme-toggle IIFE**
+
+In `index.html`, find the closing `})();` of the existing IIFE inside the bottom `<script>` block (the one wrapped in `(function () { 'use strict'; ... })();`). Immediately after that line and BEFORE `</script>`, insert:
+
+```javascript
+
+    // ---- Theme toggle ----
+    (function () {
+      'use strict';
+
+      const root      = document.documentElement;
+      const lightBtn  = document.getElementById('theme-light');
+      const darkBtn   = document.getElementById('theme-dark');
+      const resetLink = document.getElementById('theme-reset');
+      const STORAGE_KEY = 'theme';
+
+      function effectiveOSTheme() {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+
+      function setPressed(mode) {
+        lightBtn.setAttribute('aria-pressed', mode === 'light' ? 'true' : 'false');
+        darkBtn.setAttribute('aria-pressed',  mode === 'dark'  ? 'true' : 'false');
+      }
+
+      function applyOverride(mode) {
+        // mode is 'light' or 'dark'.
+        root.setAttribute('data-theme', mode);
+        try { localStorage.setItem(STORAGE_KEY, mode); } catch (_) {}
+        setPressed(mode);
+        resetLink.hidden = false;
+      }
+
+      function clearOverride() {
+        root.removeAttribute('data-theme');
+        try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+        setPressed(effectiveOSTheme());
+        resetLink.hidden = true;
+      }
+
+      // Initialize from storage if present, otherwise reflect OS.
+      let stored = null;
+      try { stored = localStorage.getItem(STORAGE_KEY); } catch (_) {}
+      if (stored === 'light' || stored === 'dark') {
+        applyOverride(stored);
+      } else {
+        setPressed(effectiveOSTheme());
+        resetLink.hidden = true;
+      }
+
+      // Click handlers.
+      lightBtn.addEventListener('click', function () { applyOverride('light'); });
+      darkBtn.addEventListener('click',  function () { applyOverride('dark');  });
+      resetLink.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        clearOverride();
+      });
+
+      // React to OS changes only when no override is active.
+      const mql = window.matchMedia('(prefers-color-scheme: dark)');
+      const onOSChange = function () {
+        let s = null;
+        try { s = localStorage.getItem(STORAGE_KEY); } catch (_) {}
+        if (s !== 'light' && s !== 'dark') {
+          setPressed(effectiveOSTheme());
+        }
+      };
+      if (typeof mql.addEventListener === 'function') mql.addEventListener('change', onOSChange);
+      else if (typeof mql.addListener === 'function') mql.addListener(onOSChange);
+    })();
+```
+
+- [ ] **Step 2: Markup sanity check**
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = ['id=\"theme-light\"','id=\"theme-dark\"','id=\"theme-reset\"',
+                    'localStorage.setItem(STORAGE_KEY','applyOverride','clearOverride'];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('markup ok');
+"
+```
+
+Expected: `markup ok`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "feat(ui): theme toggle with localStorage override and reset"
+```
+
+---
+
+## Task 11: End-to-end validation pass and final commit if needed
+
+**Files:** none modified unless an issue surfaces.
+
+This task confirms the full UI works end-to-end before declaring the redesign done. If issues are found, fix them in this task with a single follow-up commit.
+
+- [ ] **Step 1: Static checks on the final file**
+
+```bash
+node -e "
+  const fs = require('fs');
+  const html = fs.readFileSync('index.html','utf8');
+  const required = [
+    'id=\"input\"', 'id=\"output\"', 'id=\"copy\"', 'id=\"stats\"',
+    'id=\"input-gutter\"', 'id=\"output-gutter\"', 'id=\"input-overlay\"', 'id=\"output-overlay\"',
+    'id=\"stat-lines\"', 'id=\"stat-removed\"', 'id=\"stat-trailing\"',
+    'id=\"theme-light\"', 'id=\"theme-dark\"', 'id=\"theme-reset\"',
+    'clean.js', 'fonts.googleapis.com'
+  ];
+  const missing = required.filter(s => !html.includes(s));
+  if (missing.length) { console.error('MISSING:', missing); process.exit(1); }
+  console.log('all key ids present');
+"
+```
+
+Expected: `all key ids present`.
+
+- [ ] **Step 2: Confirm `clean.js` and `tests.html` were not modified anywhere across the redesign**
+
+Find the SHA of the latest commit before this redesign was started. Confirm with:
+
+```bash
+git log --oneline | grep "docs: add UI redesign spec" | head -1
+```
+
+This commit is the one made just before Task 1. Capture its SHA (call it `BASE`). Then run:
+
+```bash
+git diff $BASE..HEAD -- clean.js tests.html
+```
+
+Expected: empty output. Both files are unchanged.
+
+- [ ] **Step 3: Confirm the algorithm test page still passes**
+
+Run:
+
+```bash
+node -e "
+  const fs = require('fs');
+  eval(fs.readFileSync('clean.js','utf8'));
+  // Run a representative subset to verify the algorithm is unaffected.
+  const cases = [
+    ['  a\n  b', 'a\nb'],
+    ['', ''],
+    ['  for x:\n      body\n  done', 'for x:\n    body\ndone'],
+    ['partial\n  echo a\n  echo b', 'partial\necho a\necho b'],
+  ];
+  let fail = 0;
+  for (const [input, expected] of cases) {
+    const r = cleanText(input);
+    if (r.text !== expected) { console.error('FAIL', JSON.stringify(input), '->', JSON.stringify(r.text)); fail++; }
+  }
+  if (fail) process.exit(1);
+  console.log('algorithm regression ok');
+"
+```
+
+Expected: `algorithm regression ok`.
+
+- [ ] **Step 4: Browser smoke test (manual — instructs the human reviewer)**
+
+Open `index.html` in a browser. Confirm:
+
+  1. Header shows the speech bubble (left), handwritten title with purple underline under "It" (center), and a Light/Dark pill toggle with "Follows your OS by default." caption (right).
+  2. The three feature badges row (Private / No Upload / Instant) renders below the header.
+  3. The two code panels render side-by-side, with step badges 1 and 2, line numbers in their gutters, and the Copy button on the output panel.
+  4. Paste this 5-line bash block (with 2-space common indent) into the input panel:
+
+     ```
+       echo "=== EP inbound ATR (BAR0~5) ==="
+       for w in 0 1 2 3 4 5; do
+           base=$((0x20050600 + $w * 0x100))
+           printf "WIN%d @0x%x:\n" $w $base
+       done
+     ```
+
+     Expected: output panel shows the dedented version. The input panel's whitespace overlay shows two `·` dots at the start of every non-empty line. Stats footer reads:
+     - Lines: 5
+     - Removed common indent: 2 spaces
+     - Trailing spaces trimmed: — (or ✓ if the paste contained trailing whitespace).
+
+  5. Click `Copy`. Button briefly turns green and reads `Copied!`, then resets to `Copy`.
+  6. Toggle `Dark` in the top-right. Page switches to dark theme. The `Reset` link appears next to "Follows your OS by default.".
+  7. Click `Reset`. Page returns to OS-driven mode. `Reset` link hides.
+  8. Reload the page. Theme follows OS (no override).
+  9. Toggle `Light` in dark-OS environments (if available). Page goes light. Reload. Stays light. Click `Reset`. Returns to dark.
+  10. Resize the browser window narrower than ~768px. Layout stacks: header centered, feature badges in a column, code panels stacked with arrow rotated 90°, supporting cards stacked, stats wrap, footer stacked.
+  11. Open `tests.html` in a browser. Confirm `19 passed, 0 failed`.
+
+- [ ] **Step 5: If any of the manual checks failed, fix the specific issue, run the static and node checks again, and commit**
+
+```bash
+git add index.html
+git -c commit.gpgsign=false commit -m "fix(ui): <specific issue from smoke test>"
+```
+
+If everything passed, no commit is needed.
+
+- [ ] **Step 6: Final summary**
+
+Run `git log --oneline | head -15` and confirm the commit history reads (newest first, approximately):
+
+- `feat(ui): theme toggle with localStorage override and reset`
+- `feat(ui): wire input/output, gutter, overlay, scroll-sync, stats, copy`
+- `feat(ui): page footer with attribution and GitHub link`
+- `feat(ui): redesigned stats bar with metric tiles and info box`
+- `feat(ui): supporting cards — explainer with diagram + smart-exception note`
+- `feat(ui): style code panels, gutter, overlay, copy button`
+- `feat(ui): feature badges row (Private, No Upload, Instant)`
+- `feat(ui): header with speech bubble, handwritten title, theme toggle`
+- `feat(ui): add base CSS — theme variables, reset, page grid`
+- `refactor(ui): replace index.html with redesign shell`
+- `docs: add UI redesign spec`
+
+Plus prior commits from earlier in the project.
+
+---
+
+## Self-Review Notes
+
+- **Spec coverage:** Every section of the spec is mapped to a task: §2.2 header → Task 3, §2.3 badges → Task 4, §2.4 code panels structure → Tasks 1 (markup) + 5 (CSS) + 9 (JS), §2.5 supporting cards → Task 6, §2.6 stats → Task 7, §2.7 page footer → Task 8, §3.1 theme toggle → Task 10, §3.2 live update pipeline → Task 9, §3.3 copy button → Task 9 (Step 1), §3.4 scroll sync → Task 9 (Step 1), §3.5 responsive layout → folded into each task's CSS. §4 file structure → preserved across all tasks (only `index.html` is modified).
+- **Placeholder scan:** No TBDs, TODOs, or "implement later" markers. Every code change has the actual text the engineer pastes. The Korean copy is explicitly out-of-scope per spec §5, not a placeholder.
+- **Type / name consistency:** IDs (`input`, `output`, `copy`, `input-gutter`, `output-gutter`, `input-overlay`, `output-overlay`, `stat-lines`, `stat-removed`, `stat-trailing`, `theme-light`, `theme-dark`, `theme-reset`) are consistent across the markup tasks (1, 7) and the JS tasks (9, 10). Class names (`code-pane`, `code-pane-header`, `step-badge`, `code-pane-title`, `code-pane-hint`, `copy-btn`, `code-area`, `line-numbers`, `ws-overlay`, `code-input`, `feature-badge`, `info-card`, `stats-bar`, `stat-tile`, `stat-icon`, `stat-text`, `stat-label`, `stat-value`, `stats-info`, `theme-toggle`, `theme-toggle-btn`, `theme-hint`, `theme-reset`, `it-accent`, `title-accent`) are used consistently across the markup tasks and the styling tasks.
+- **Test discipline:** No automated UI tests exist (consistent with spec §4.4). Each task has a static markup-sanity check; Task 9 includes a node-based check on the stats helpers. Algorithm tests in `tests.html` continue to be authoritative and must remain green at the end (Task 11 Step 3).
