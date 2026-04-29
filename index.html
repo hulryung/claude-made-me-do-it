@@ -437,6 +437,71 @@
       .supporting-cards { grid-template-columns: 1fr; }
       .dedent-diagram { display: none; }
     }
+
+    /* ---- Stats bar ---- */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: stretch;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 1rem;
+      box-shadow: var(--shadow);
+    }
+    .stats-metrics {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .stat-tile {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .stat-icon {
+      width: 28px;
+      height: 28px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .stat-text { display: flex; flex-direction: column; line-height: 1.2; }
+    .stat-label { color: var(--muted); font-size: 12px; }
+    .stat-value {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .stats-info {
+      max-width: 360px;
+      background: var(--accent-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.85rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+    }
+    .stats-info-icon {
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .stats-info-text {
+      margin: 0;
+      font-size: 12px;
+      color: var(--fg-2);
+      line-height: 1.4;
+    }
+    .stats-info-text strong { color: var(--accent); }
+
+    @media (max-width: 768px) {
+      .stats-bar { grid-template-columns: 1fr; }
+      .stats-metrics { gap: 1rem; }
+    }
   </style>
 </head>
 <body>
@@ -610,9 +675,59 @@
     </div>
   </section>
 
-  <section class="stats-bar" id="stats-bar">
-    <!-- 3 metric tiles + info box (Task 9) -->
-    <span id="stats"></span>
+  <section class="stats-bar" aria-label="Run statistics">
+    <div class="stats-metrics" id="stats">
+      <div class="stat-tile">
+        <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 4 L 5 20 L 19 20" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round"/>
+          <path d="M8 16 L 11 12 L 14 14 L 18 8" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+        <div class="stat-text">
+          <span class="stat-label">Lines</span>
+          <span class="stat-value" id="stat-lines">0</span>
+        </div>
+      </div>
+
+      <div class="stat-tile">
+        <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="6" y="3" width="12" height="18" rx="2"
+                fill="none" stroke="currentColor" stroke-width="2"/>
+          <line x1="9" y1="8"  x2="15" y2="8"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="12" x2="13" y2="12"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div class="stat-text">
+          <span class="stat-label">Removed common indent</span>
+          <span class="stat-value" id="stat-removed">none</span>
+        </div>
+      </div>
+
+      <div class="stat-tile">
+        <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="6" y="3" width="12" height="18" rx="2"
+                fill="none" stroke="currentColor" stroke-width="2"/>
+          <line x1="9" y1="8"  x2="15" y2="8"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <line x1="9" y1="12" x2="11" y2="12"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div class="stat-text">
+          <span class="stat-label">Trailing spaces trimmed</span>
+          <span class="stat-value" id="stat-trailing">—</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="stats-info">
+      <span class="stats-info-icon" aria-hidden="true">ℹ</span>
+      <p class="stats-info-text">
+        <strong>AI paste-aware.</strong> Different from generic trim tools — it removes only
+        the shared leading indent. Your code structure stays intact.
+      </p>
+    </aside>
   </section>
 
   <footer class="page-footer">
