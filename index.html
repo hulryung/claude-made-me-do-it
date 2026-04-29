@@ -796,7 +796,145 @@
 
   <script src="clean.js"></script>
   <script>
-    /* JS will be added in Task 11 */
+    (function () {
+      'use strict';
+
+      const inputEl    = document.getElementById('input');
+      const outputEl   = document.getElementById('output');
+      const inputGut   = document.getElementById('input-gutter');
+      const outputGut  = document.getElementById('output-gutter');
+      const inputOver  = document.getElementById('input-overlay');
+      const outputOver = document.getElementById('output-overlay');
+      const copyBtn    = document.getElementById('copy');
+      const statLines    = document.getElementById('stat-lines');
+      const statRemoved  = document.getElementById('stat-removed');
+      const statTrailing = document.getElementById('stat-trailing');
+
+      // ---- Helpers ----
+
+      function lineCount(text) {
+        if (text.length === 0) return 1;
+        let n = 1;
+        for (let i = 0; i < text.length; i++) if (text.charCodeAt(i) === 10) n++;
+        return n;
+      }
+
+      function gutterText(n) {
+        const out = new Array(n);
+        for (let i = 0; i < n; i++) out[i] = String(i + 1);
+        return out.join('\n');
+      }
+
+      // Render the leading-whitespace overlay. Body text is left as-is
+      // but transparent (CSS does that); only leading whitespace runs are
+      // wrapped in a span so the dot/arrow glyphs can be colored.
+      function overlayHTML(text) {
+        const lines = text.split('\n');
+        const escaped = new Array(lines.length);
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          let lead = '';
+          let j = 0;
+          while (j < line.length && (line.charCodeAt(j) === 32 || line.charCodeAt(j) === 9)) {
+            lead += line[j] === '\t' ? '→' : '·';
+            j++;
+          }
+          // The rest of the line stays as-is (escaped) so width matches the textarea.
+          const rest = line.slice(j)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          escaped[i] = lead.length > 0
+            ? '<span class="ws-dot">' + lead + '</span>' + rest
+            : rest;
+        }
+        return escaped.join('\n');
+      }
+
+      function describePrefix(p) {
+        if (!p) return 'none';
+        let spaces = 0, tabs = 0;
+        for (let i = 0; i < p.length; i++) {
+          if (p[i] === ' ') spaces++;
+          else if (p[i] === '\t') tabs++;
+        }
+        const parts = [];
+        if (spaces) parts.push(spaces + ' space' + (spaces === 1 ? '' : 's'));
+        if (tabs)   parts.push(tabs   + ' tab'   + (tabs   === 1 ? '' : 's'));
+        return parts.join(' + ');
+      }
+
+      function anyTrailingTrimmed(raw) {
+        // True if any line has trailing whitespace that the algorithm strips.
+        const lines = raw.replace(/\r\n?/g, '\n').split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          if (/[ \t]+$/.test(lines[i])) return true;
+        }
+        return false;
+      }
+
+      // ---- Render ----
+
+      function render() {
+        const raw = inputEl.value;
+        const result = cleanText(raw);
+        outputEl.value = result.text;
+
+        const inLines  = lineCount(raw);
+        const outLines = lineCount(result.text);
+        inputGut.textContent  = gutterText(inLines);
+        outputGut.textContent = gutterText(outLines);
+        inputOver.innerHTML  = overlayHTML(raw);
+        outputOver.innerHTML = overlayHTML(result.text);
+
+        statLines.textContent    = String(result.stats.linesOut);
+        statRemoved.textContent  = describePrefix(result.stats.prefixRemoved);
+        statTrailing.textContent = anyTrailingTrimmed(raw) ? '✓' : '—';
+
+        // Scroll-sync after content changes (e.g. paste auto-scrolls).
+        syncScroll(inputEl,  inputGut,  inputOver);
+        syncScroll(outputEl, outputGut, outputOver);
+      }
+
+      function syncScroll(textarea, gutter, overlay) {
+        gutter.scrollTop  = textarea.scrollTop;
+        overlay.scrollTop = textarea.scrollTop;
+        overlay.scrollLeft = textarea.scrollLeft;
+      }
+
+      inputEl.addEventListener('input', render);
+      inputEl.addEventListener('scroll',  function () { syncScroll(inputEl,  inputGut,  inputOver);  });
+      outputEl.addEventListener('scroll', function () { syncScroll(outputEl, outputGut, outputOver); });
+
+      // ---- Copy button (preserved logic from previous version) ----
+
+      let copyResetTimer = null;
+      async function copyOutput() {
+        if (copyBtn.classList.contains('copied') || copyBtn.classList.contains('failed')) return;
+        let ok = false;
+        try {
+          await navigator.clipboard.writeText(outputEl.value);
+          ok = true;
+        } catch (err) {
+          outputEl.removeAttribute('readonly');
+          outputEl.select();
+          try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+          outputEl.setAttribute('readonly', '');
+        }
+        copyBtn.textContent = ok ? 'Copied!' : 'Copy failed';
+        copyBtn.classList.add(ok ? 'copied' : 'failed');
+        if (copyResetTimer) clearTimeout(copyResetTimer);
+        copyResetTimer = setTimeout(function () {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied', 'failed');
+          copyResetTimer = null;
+        }, 1500);
+      }
+      copyBtn.addEventListener('click', copyOutput);
+
+      // First render to seed gutters and stats.
+      render();
+    })();
   </script>
 </body>
 </html>
