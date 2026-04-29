@@ -10,7 +10,96 @@
     href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap"
     rel="stylesheet">
   <style>
-    /* CSS will be added in Task 2 */
+    /* ---- Theme variables ---- */
+    :root {
+      --bg: #f7f7f8;
+      --surface: #ffffff;
+      --surface-2: #fafafa;
+      --fg: #1a1a1a;
+      --fg-2: #3a3a3a;
+      --muted: #666;
+      --muted-2: #888;
+      --border: #e3e3e6;
+      --border-strong: #cfcfd3;
+      --accent: #6d4cff;
+      --accent-soft: #ece7ff;
+      --accent-fg: #ffffff;
+      --success: #16a34a;
+      --failure: #c0392b;
+      --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --gutter: 1.25rem;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0e1014;
+        --surface: #15181d;
+        --surface-2: #1b1f26;
+        --fg: #e6e6e6;
+        --fg-2: #c9c9cc;
+        --muted: #8a8d93;
+        --muted-2: #6f7178;
+        --border: #2a2d33;
+        --border-strong: #3a3d44;
+        --accent: #8a6bff;
+        --accent-soft: #2a2244;
+        --accent-fg: #ffffff;
+        --success: #22c55e;
+        --failure: #ef4444;
+        --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0e1014;
+      --surface: #15181d;
+      --surface-2: #1b1f26;
+      --fg: #e6e6e6;
+      --fg-2: #c9c9cc;
+      --muted: #8a8d93;
+      --muted-2: #6f7178;
+      --border: #2a2d33;
+      --border-strong: #3a3d44;
+      --accent: #8a6bff;
+      --accent-soft: #2a2244;
+      --accent-fg: #ffffff;
+      --success: #22c55e;
+      --failure: #ef4444;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
+    }
+
+    /* ---- Reset ---- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---- Page grid ---- */
+    body {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto auto auto;
+      gap: var(--gutter);
+      padding: var(--gutter) calc(var(--gutter) * 2);
+    }
+    @media (max-width: 768px) {
+      body { padding: var(--gutter); }
+    }
+
+    /* ---- Reusable utilities ---- */
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+
+    /* ---- Code monospace stack used by panels and stats ---- */
+    .mono {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
   </style>
 </head>
 <body>
