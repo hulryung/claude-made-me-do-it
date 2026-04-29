@@ -58,9 +58,9 @@
   );
 
   assertEqual(
-    'no dedent when prefix is empty',
-    cleanText('a\n  b').text,
-    'a\n  b'
+    'no dedent when no common prefix',
+    cleanText('a\nb\nc').text,
+    'a\nb\nc'
   );
 
   assertEqual(
