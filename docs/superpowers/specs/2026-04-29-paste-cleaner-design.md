@@ -35,16 +35,25 @@ Input: raw text (the pasted string)
 1. Split into lines (handle LF and CRLF; normalize line endings).
 2. Strip trailing whitespace from each line.
 3. Pick dedent candidates:
-   - Start with all non-empty lines.
-   - Compute the minimum leading-whitespace length across all
-     non-empty lines. Call this M.
-   - If there are ≥ 2 non-empty lines, evaluate FIRST and LAST
-     independently against the same baseline:
-       * If the FIRST non-empty line's leading length < M, exclude it.
-       * If the LAST non-empty line's leading length < M, exclude it.
-   - If only one non-empty line exists, no exclusion applies.
-   (This handles the "partial copy" case where the user grabbed
-    a line mid-stream so its indentation is artificially short.)
+   - Start with all non-empty lines. Let n = their count.
+   - The exclusion rule fires only on the *partial-copy* signature:
+     a line that has **zero** leading whitespace while the other
+     lines all have at least one leading whitespace character.
+     This is intentionally conservative — it does not exclude lines
+     that are simply less indented than their neighbors (e.g., the
+     opening/closing of a code block), because such lines are
+     legitimate code structure, not artifacts.
+   - If n == 1: no exclusion (single-line case).
+   - If n == 2:
+       * Exclude first if firstLen == 0 AND lastLen > 0.
+       * Exclude last  if lastLen == 0 AND firstLen > 0.
+   - If n ≥ 3: define `interiorAllPositive` to mean every non-empty
+     line strictly between the first and last non-empty lines has
+     leading length > 0.
+       * Exclude first if firstLen == 0 AND interiorAllPositive.
+       * Exclude last  if lastLen == 0 AND interiorAllPositive.
+       (The two checks are independent; both first and last can be
+        excluded — e.g., when both ends are partial-copy artifacts.)
 4. If the candidate set is empty (all lines were excluded — rare
    but possible), skip the dedent step. Otherwise compute the
    longest common prefix of the leading-whitespace strings of the

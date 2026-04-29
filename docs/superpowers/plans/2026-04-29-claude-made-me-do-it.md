@@ -217,9 +217,9 @@ Insert these `assertEqual` calls in `tests.html`, just after the existing one an
   );
 
   assertEqual(
-    'no dedent when prefix is empty',
-    cleanText('a\n  b').text,
-    'a\n  b'
+    'no dedent when no common prefix',
+    cleanText('a\nb\nc').text,
+    'a\nb\nc'
   );
 
   assertEqual(
@@ -372,24 +372,30 @@ Replace the dedent block (the part starting at `// Step: dedent — ...` through
     }
 
     let prefix = '';
-    if (nonEmptyIdx.length === 1) {
-      // Single non-empty line: no dedent (per spec edge case).
-      prefix = '';
-    } else if (nonEmptyIdx.length >= 2) {
-      // Compute M = min leading-whitespace length over all non-empty lines.
-      let minLen = Infinity;
-      for (let k = 0; k < nonEmptyIdx.length; k++) {
-        const lw = leadingWhitespace(trimmed[nonEmptyIdx[k]]);
-        if (lw.length < minLen) minLen = lw.length;
-      }
-
+    if (nonEmptyIdx.length >= 2) {
       const firstIdx = nonEmptyIdx[0];
       const lastIdx = nonEmptyIdx[nonEmptyIdx.length - 1];
-      const firstLW = leadingWhitespace(trimmed[firstIdx]);
-      const lastLW = leadingWhitespace(trimmed[lastIdx]);
+      const firstLen = leadingWhitespace(trimmed[firstIdx]).length;
+      const lastLen = leadingWhitespace(trimmed[lastIdx]).length;
 
-      const excludeFirst = firstLW.length < minLen;
-      const excludeLast = lastLW.length < minLen;
+      let excludeFirst = false;
+      let excludeLast = false;
+
+      if (nonEmptyIdx.length === 2) {
+        // Compare the two lines directly.
+        excludeFirst = firstLen === 0 && lastLen > 0;
+        excludeLast = lastLen === 0 && firstLen > 0;
+      } else {
+        // n >= 3: check that every interior non-empty line
+        // (strictly between first and last) has leading > 0.
+        let interiorAllPositive = true;
+        for (let k = 1; k < nonEmptyIdx.length - 1; k++) {
+          const len = leadingWhitespace(trimmed[nonEmptyIdx[k]]).length;
+          if (len === 0) { interiorAllPositive = false; break; }
+        }
+        excludeFirst = firstLen === 0 && interiorAllPositive;
+        excludeLast = lastLen === 0 && interiorAllPositive;
+      }
 
       // Build the candidate set after exclusion.
       const candidates = [];
@@ -400,9 +406,7 @@ Replace the dedent block (the part starting at `// Step: dedent — ...` through
         candidates.push(trimmed[idx]);
       }
 
-      if (candidates.length === 0) {
-        prefix = '';
-      } else {
+      if (candidates.length > 0) {
         let p = null;
         for (let k = 0; k < candidates.length; k++) {
           const lw = leadingWhitespace(candidates[k]);
@@ -412,6 +416,7 @@ Replace the dedent block (the part starting at `// Step: dedent — ...` through
         prefix = p === null ? '' : p;
       }
     }
+    // nonEmptyIdx.length <= 1 → prefix stays '' (no dedent).
 
     const dedented = trimmed.map(function (line) {
       if (line.length === 0) return line;
