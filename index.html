@@ -159,7 +159,61 @@
 
   <script src="clean.js"></script>
   <script>
-    // wiring goes here in Task 9
+    (function () {
+      const inputEl = document.getElementById('input');
+      const outputEl = document.getElementById('output');
+      const copyBtn = document.getElementById('copy');
+      const statsEl = document.getElementById('stats');
+
+      function render() {
+        const result = cleanText(inputEl.value);
+        outputEl.value = result.text;
+        const prefixDesc = describePrefix(result.stats.prefixRemoved);
+        statsEl.textContent =
+          'Lines: ' + result.stats.linesOut +
+          '   Removed: ' + prefixDesc;
+      }
+
+      function describePrefix(p) {
+        if (!p) return 'no common leading whitespace';
+        let spaces = 0, tabs = 0;
+        for (let i = 0; i < p.length; i++) {
+          if (p[i] === ' ') spaces++;
+          else if (p[i] === '\t') tabs++;
+        }
+        const parts = [];
+        if (spaces) parts.push(spaces + ' space' + (spaces === 1 ? '' : 's'));
+        if (tabs) parts.push(tabs + ' tab' + (tabs === 1 ? '' : 's'));
+        return parts.join(' + ') + ' leading';
+      }
+
+      async function copyOutput() {
+        try {
+          await navigator.clipboard.writeText(outputEl.value);
+        } catch (err) {
+          // Fallback: select and execCommand for older browsers.
+          outputEl.removeAttribute('readonly');
+          outputEl.select();
+          document.execCommand('copy');
+          outputEl.setAttribute('readonly', '');
+        }
+        const original = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(function () {
+          copyBtn.textContent = original;
+          copyBtn.classList.remove('copied');
+        }, 1500);
+      }
+
+      inputEl.addEventListener('input', render);
+      copyBtn.addEventListener('click', copyOutput);
+
+      // Click the output to select-all (handy fallback).
+      outputEl.addEventListener('focus', function () { outputEl.select(); });
+
+      render();
+    })();
   </script>
 </body>
 </html>
