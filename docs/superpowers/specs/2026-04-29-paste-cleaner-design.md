@@ -1,4 +1,7 @@
-# Paste Cleaner — Design Doc
+# claude-made-me-do-it — Design Doc
+
+**Project name:** `claude-made-me-do-it` (used as repo name and app title)
+**Tagline:** "A web app I made because Claude Code's copy-paste keeps breaking my terminal."
 
 **Date:** 2026-04-29
 **Author:** dkkang
@@ -73,7 +76,7 @@ Output: { text, stats: { linesIn, linesOut, prefixRemoved } }
 
 ```
 ┌──────────────────────────────────────────────────┐
-│  Paste Cleaner                                   │
+│  claude-made-me-do-it                            │
 ├──────────────────────────────────────────────────┤
 │ ┌────────────────────┬────────────────────────┐  │
 │ │ INPUT              │ OUTPUT       [Copy]    │  │
@@ -107,7 +110,7 @@ Output: { text, stats: { linesIn, linesOut, prefixRemoved } }
 **Repository layout:**
 
 ```
-paste/
+claude-made-me-do-it/
 ├── index.html      # HTML + inline <style> + inline <script>
 ├── README.md       # Project intro, usage, deploy notes
 ├── .gitignore
@@ -116,6 +119,8 @@ paste/
         └── specs/
             └── 2026-04-29-paste-cleaner-design.md   # this file
 ```
+
+The local working directory is `/Users/dkkang/dev/paste` (kept short for typing convenience). The GitHub repository will be named `claude-made-me-do-it`.
 
 **index.html structure:**
 
