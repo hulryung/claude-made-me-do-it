@@ -749,6 +749,7 @@ This task styles the two code panels and the arrow between them. The textareas, 
       gap: 0.6rem;
       padding: 0.6rem 0.85rem;
       border-bottom: 1px solid var(--border);
+      min-height: 56px;
     }
     .step-badge {
       display: inline-flex;
@@ -803,6 +804,7 @@ This task styles the two code panels and the arrow between them. The textareas, 
       font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       font-size: 13px;
       line-height: 1.55;
+      tab-size: 4;
     }
     .line-numbers {
       grid-column: 1;
