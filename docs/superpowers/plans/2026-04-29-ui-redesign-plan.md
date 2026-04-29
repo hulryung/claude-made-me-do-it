@@ -737,6 +737,7 @@ This task styles the two code panels and the arrow between them. The textareas, 
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       min-height: 380px;
+      max-height: min(70vh, 720px);
     }
     .code-pane-header {
       display: flex;
