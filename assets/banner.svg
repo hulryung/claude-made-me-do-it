@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" role="img"
+     aria-labelledby="bannerTitle bannerDesc">
+  <title id="bannerTitle">Claude Made Me Do It</title>
+  <desc id="bannerDesc">A web app that strips the leftover whitespace AI loves to add.</desc>
+
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="85%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#eeebf7"/>
+    </radialGradient>
+    <pattern id="dotgrid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.4" fill="#d8d4e8"/>
+    </pattern>
+  </defs>
+
+  <!-- background -->
+  <rect width="1200" height="400" fill="url(#bg)"/>
+  <rect width="1200" height="400" fill="url(#dotgrid)" opacity="0.55"/>
+
+  <!-- speech bubble + terminal (top-left, mirrors the app) -->
+  <g transform="translate(60, 50)" fill="none" stroke="#2a2233" stroke-width="2.5"
+     stroke-linejoin="round">
+    <rect x="6" y="46" width="50" height="40" rx="6" fill="#ffffff"/>
+    <path d="M70 30 Q 70 14, 90 14 L 258 14 Q 276 14, 276 30 L 276 56 Q 276 72, 258 72
+             L 110 72 L 86 90 L 92 72 L 90 72 Q 70 72, 70 56 Z" fill="#ffffff"/>
+  </g>
+  <text x="74" y="123" font-family="ui-monospace, Menlo, Consolas, monospace"
+        font-size="20" fill="#2a2233">&gt;_</text>
+  <text x="158" y="100"
+        font-family="Caveat, 'Marker Felt', 'Bradley Hand', 'Brush Script MT', cursive"
+        font-size="24" font-weight="700" fill="#2a2233">No more whitespace.</text>
+
+  <!-- title -->
+  <text x="600" y="240" text-anchor="middle"
+        font-family="Caveat, 'Marker Felt', 'Bradley Hand', 'Brush Script MT', cursive"
+        font-weight="700" font-size="120" fill="#1a1a1a"
+        letter-spacing="0.5">Claude Made Me Do <tspan fill="#6d4cff">It</tspan>.</text>
+
+  <!-- hand-drawn-feel underline under "It" (approx position) -->
+  <path d="M 758 256 Q 790 264, 822 254" fill="none" stroke="#6d4cff"
+        stroke-width="6" stroke-linecap="round"/>
+
+  <!-- tagline -->
+  <text x="600" y="296" text-anchor="middle"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        font-size="22" fill="#4a4a55">
+    Strips the leftover whitespace AI loves to add.
+    <tspan font-size="22">🧹</tspan>
+  </text>
+
+  <!-- feature row -->
+  <g font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+     font-size="18" font-weight="500" fill="#1a1a1a" text-anchor="middle">
+    <text x="370" y="358"><tspan fill="#6d4cff">🔒</tspan>  100% Private</text>
+    <text x="600" y="358"><tspan fill="#6d4cff">🛡</tspan>  No Upload</text>
+    <text x="830" y="358"><tspan fill="#6d4cff">⚡</tspan>  Instant</text>
+  </g>
+</svg>

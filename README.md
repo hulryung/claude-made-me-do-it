@@ -1,10 +1,14 @@
+<p align="center">
+  <img src="assets/banner.svg" alt="Claude Made Me Do It — Strips the leftover whitespace AI loves to add.">
+</p>
+
 # 🧹 claude-made-me-do-it
 
 > A web app I built because Claude Code's copy-paste keeps breaking my terminal.
 
-![Claude Made Me Do It — screenshot](assets/screenshot.png)
-
 [**Try it →** hulryung.github.io/claude-made-me-do-it](https://hulryung.github.io/claude-made-me-do-it/)
+
+![Claude Made Me Do It — screenshot](assets/screenshot.png)
 
 ---
 
