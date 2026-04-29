@@ -83,11 +83,18 @@
       return line.startsWith(prefix) ? line.slice(prefix.length) : line;
     });
 
+    // Step: trim leading/trailing blank lines.
+    let start = 0;
+    let end = dedented.length;
+    while (start < end && dedented[start].length === 0) start++;
+    while (end > start && dedented[end - 1].length === 0) end--;
+    const finalLines = dedented.slice(start, end);
+
     return {
-      text: dedented.join('\n'),
+      text: finalLines.join('\n'),
       stats: {
         linesIn: linesIn.length,
-        linesOut: dedented.length,
+        linesOut: finalLines.length,
         prefixRemoved: prefix
       }
     };

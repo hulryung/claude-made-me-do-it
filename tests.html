@@ -111,6 +111,36 @@
     'a\nb'
   );
 
+  assertEqual(
+    'leading blank lines trimmed',
+    cleanText('\n\n  a\n  b').text,
+    'a\nb'
+  );
+
+  assertEqual(
+    'trailing blank lines trimmed',
+    cleanText('  a\n  b\n\n').text,
+    'a\nb'
+  );
+
+  assertEqual(
+    'blank lines in the middle preserved',
+    cleanText('  a\n\n  b').text,
+    'a\n\nb'
+  );
+
+  assertEqual(
+    'empty input produces empty output',
+    cleanText('').text,
+    ''
+  );
+
+  assertEqual(
+    'whitespace-only input produces empty output',
+    cleanText('   \n\t\n').text,
+    ''
+  );
+
   // ---- summary ----
   const summary = document.createElement('h2');
   summary.textContent = `${passed} passed, ${failed} failed`;
