@@ -1,0 +1,25 @@
+{
+  "name": "Claude Made Me Do It",
+  "short_name": "Made Me Do It",
+  "description": "Strips the leftover whitespace AI loves to add.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f7f7f8",
+  "theme_color": "#6d4cff",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

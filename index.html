@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Claude Made Me Do It</title>
+  <meta name="description" content="Strips the leftover whitespace AI loves to add.">
+  <meta name="theme-color" content="#6d4cff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1014" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" href="./favicon.svg">
+  <link rel="manifest" href="./manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -1050,6 +1056,13 @@
       if (typeof mql.addEventListener === 'function') mql.addEventListener('change', onOSChange);
       else if (typeof mql.addListener === 'function') mql.addListener(onOSChange);
     })();
+
+    // ---- Service worker registration ----
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function () { /* offline mode unavailable */ });
+      });
+    }
   </script>
 </body>
 </html>
