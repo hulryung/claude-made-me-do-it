@@ -24,17 +24,59 @@
       return line.replace(/[ \t]+$/, '');
     });
 
-    // Step: dedent — find longest common leading-whitespace prefix
-    // among all non-empty lines.
-    const nonEmpty = trimmed.filter(function (line) { return line.length > 0; });
-
-    let prefix = null;
-    for (let i = 0; i < nonEmpty.length; i++) {
-      const lw = leadingWhitespace(nonEmpty[i]);
-      prefix = (prefix === null) ? lw : commonPrefix(prefix, lw);
-      if (prefix === '') break;
+    // Step: dedent.
+    // Identify non-empty lines and their indices.
+    const nonEmptyIdx = [];
+    for (let i = 0; i < trimmed.length; i++) {
+      if (trimmed[i].length > 0) nonEmptyIdx.push(i);
     }
-    if (prefix === null) prefix = '';
+
+    let prefix = '';
+    if (nonEmptyIdx.length >= 2) {
+      const firstIdx = nonEmptyIdx[0];
+      const lastIdx = nonEmptyIdx[nonEmptyIdx.length - 1];
+      const firstLen = leadingWhitespace(trimmed[firstIdx]).length;
+      const lastLen = leadingWhitespace(trimmed[lastIdx]).length;
+
+      let excludeFirst = false;
+      let excludeLast = false;
+
+      if (nonEmptyIdx.length === 2) {
+        // Compare the two lines directly.
+        excludeFirst = firstLen === 0 && lastLen > 0;
+        excludeLast = lastLen === 0 && firstLen > 0;
+      } else {
+        // n >= 3: check that every interior non-empty line
+        // (strictly between first and last) has leading > 0.
+        let interiorAllPositive = true;
+        for (let k = 1; k < nonEmptyIdx.length - 1; k++) {
+          const len = leadingWhitespace(trimmed[nonEmptyIdx[k]]).length;
+          if (len === 0) { interiorAllPositive = false; break; }
+        }
+        excludeFirst = firstLen === 0 && interiorAllPositive;
+        excludeLast = lastLen === 0 && interiorAllPositive;
+      }
+
+      // Build the candidate set after exclusion.
+      const candidates = [];
+      for (let k = 0; k < nonEmptyIdx.length; k++) {
+        const idx = nonEmptyIdx[k];
+        if (excludeFirst && idx === firstIdx) continue;
+        if (excludeLast && idx === lastIdx) continue;
+        candidates.push(trimmed[idx]);
+      }
+
+      if (candidates.length > 0) {
+        let p = null;
+        for (let k = 0; k < candidates.length; k++) {
+          const lw = leadingWhitespace(candidates[k]);
+          p = (p === null) ? lw : commonPrefix(p, lw);
+          if (p === '') break;
+        }
+        prefix = p === null ? '' : p;
+      }
+    }
+    // nonEmptyIdx.length <= 1 → prefix stays '' (no dedent).
 
     const dedented = trimmed.map(function (line) {
       if (line.length === 0) return line;

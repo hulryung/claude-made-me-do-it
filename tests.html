@@ -81,6 +81,36 @@
     '  '
   );
 
+  assertEqual(
+    'first-line outlier excluded from prefix calculation',
+    cleanText('partial mid-stream\n  echo a\n  echo b').text,
+    'partial mid-stream\necho a\necho b'
+  );
+
+  assertEqual(
+    'last-line outlier excluded from prefix calculation',
+    cleanText('  echo a\n  echo b\nstrayed end').text,
+    'echo a\necho b\nstrayed end'
+  );
+
+  assertEqual(
+    'first AND last outliers both excluded',
+    cleanText('strayed start\n  echo a\n  echo b\nstrayed end').text,
+    'strayed start\necho a\necho b\nstrayed end'
+  );
+
+  assertEqual(
+    'single non-empty line: no exclusion, just trailing trim',
+    cleanText('  only line').text,
+    '  only line'
+  );
+
+  assertEqual(
+    'two non-empty lines, first shorter: first excluded so prefix from second alone',
+    cleanText('a\n  b').text,
+    'a\nb'
+  );
+
   // ---- summary ----
   const summary = document.createElement('h2');
   summary.textContent = `${passed} passed, ${failed} failed`;
