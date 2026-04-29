@@ -45,6 +45,42 @@
     'abc\ndef\nghi'
   );
 
+  assertEqual(
+    'removes 2-space common leading prefix',
+    cleanText('  echo "a"\n  echo "b"').text,
+    'echo "a"\necho "b"'
+  );
+
+  assertEqual(
+    'preserves relative indentation',
+    cleanText('  outer\n    inner\n  outer').text,
+    'outer\n  inner\nouter'
+  );
+
+  assertEqual(
+    'no dedent when prefix is empty',
+    cleanText('a\n  b').text,
+    'a\n  b'
+  );
+
+  assertEqual(
+    'mixed tabs and spaces — only literal common prefix removed',
+    cleanText('\t a\n\t b').text,
+    'a\nb'
+  );
+
+  assertEqual(
+    'mixed tabs vs spaces in different lines — no common prefix',
+    cleanText('\ta\n  a').text,
+    '\ta\n  a'
+  );
+
+  assertEqual(
+    'reports prefixRemoved in stats',
+    cleanText('  a\n  b').stats.prefixRemoved,
+    '  '
+  );
+
   // ---- summary ----
   const summary = document.createElement('h2');
   summary.textContent = `${passed} passed, ${failed} failed`;
