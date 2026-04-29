@@ -33,14 +33,20 @@ Input: raw text (the pasted string)
 2. Strip trailing whitespace from each line.
 3. Pick dedent candidates:
    - Start with all non-empty lines.
-   - If the FIRST line's leading-whitespace length is less than
-     the minimum among the other non-empty lines, exclude it.
-   - Same check for the LAST line.
+   - Compute the minimum leading-whitespace length across all
+     non-empty lines. Call this M.
+   - If there are ≥ 2 non-empty lines, evaluate FIRST and LAST
+     independently against the same baseline:
+       * If the FIRST non-empty line's leading length < M, exclude it.
+       * If the LAST non-empty line's leading length < M, exclude it.
+   - If only one non-empty line exists, no exclusion applies.
    (This handles the "partial copy" case where the user grabbed
     a line mid-stream so its indentation is artificially short.)
-4. Compute the longest common prefix of the leading-whitespace
-   strings of the candidate lines (prefix-matching, not just
-   length — protects against tab/space mixing).
+4. If the candidate set is empty (all lines were excluded — rare
+   but possible), skip the dedent step. Otherwise compute the
+   longest common prefix of the leading-whitespace strings of the
+   candidate lines (prefix-matching, not just length — protects
+   against tab/space mixing).
 5. Remove that prefix from every line in the output.
    - Lines that share the prefix get it stripped.
    - Excluded lines (first/last partial) keep their content;
