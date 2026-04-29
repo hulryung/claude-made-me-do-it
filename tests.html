@@ -141,6 +141,32 @@
     ''
   );
 
+  // Regression: real-world paste from Claude Code (2-space indented bash block).
+  {
+    const input =
+      '  echo "=== EP inbound ATR (BAR0~5) ==="\n' +
+      '  for w in 0 1 2 3 4 5; do\n' +
+      '      base=$((0x20050600 + $w * 0x100))\n' +
+      '      printf "WIN%d @0x%x:\\n" $w $base\n' +
+      '  done\n' +
+      '\n' +
+      '  echo\n' +
+      '  echo "=== set_bar 시 driver 출력 (ATR 설정) ==="';
+
+    const expected =
+      'echo "=== EP inbound ATR (BAR0~5) ==="\n' +
+      'for w in 0 1 2 3 4 5; do\n' +
+      '    base=$((0x20050600 + $w * 0x100))\n' +
+      '    printf "WIN%d @0x%x:\\n" $w $base\n' +
+      'done\n' +
+      '\n' +
+      'echo\n' +
+      'echo "=== set_bar 시 driver 출력 (ATR 설정) ==="';
+
+    assertEqual('regression: claude-code 2-space indent block', cleanText(input).text, expected);
+    assertEqual('regression: prefix detected as two spaces', cleanText(input).stats.prefixRemoved, '  ');
+  }
+
   // ---- summary ----
   const summary = document.createElement('h2');
   summary.textContent = `${passed} passed, ${failed} failed`;
